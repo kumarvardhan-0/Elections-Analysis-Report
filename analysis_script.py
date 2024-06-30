@@ -1,5 +1,45 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import requests
+from bs4 import BeautifulSoup
+
+
+def scrape_election_results(url):
+    response = requests.get(url)
+    if response.status_code != 200:
+        raise Exception(f"Failed to load page {url}")
+    
+    soup = BeautifulSoup(response.text, 'html.parser')
+    table = soup.find('table')  # Update this selector based on the actual table structure
+    
+    if table is None:
+        print(soup.prettify())  # Print the HTML content for inspection
+        raise Exception("Table not found on the page. Check the structure of the page and update the scraping logic.")
+    
+    rows = table.find_all('tr')
+    
+    data = []
+    for row in rows:
+        cols = row.find_all('td')
+        cols = [col.text.strip() for col in cols]
+        if cols:  # Only append non-empty rows
+            data.append(cols)
+    
+    if not data:
+        raise Exception("No data found in the table. Check the table structure and ensure it's correctly selected.")
+    
+    # Example: Define columns based on table structure
+    columns = ["Party Name", "Seats Won", "Leading/Trailing", "Total Seats"]  # Update columns as per actual data
+    df = pd.DataFrame(data, columns=columns)
+    return df
+
+url = 'https://results.eci.gov.in/PcResultGenJune2024/index.htm'  # Update with the actual URL
+try:
+    df = scrape_election_results(url)
+    df.to_csv('raw_data.csv', index=False)
+    print(df.head())
+except Exception as e:
+    print(e)
 
 # Load the data
 df = pd.read_csv('raw_data.csv')
